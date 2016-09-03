@@ -17,7 +17,7 @@ const recursiveAssign = (target, ...sources) => {
 			}
 			// Objects
 			else if (typeof value === 'object') {
-				// Extend recursively if applicable 
+				// Extend recursively if applicable
 				if (typeof target[key] === 'object') target[key] = recursiveAssign(target[key], value);
 				else target[key] = value;
 			}
@@ -56,6 +56,14 @@ const modList = (list, toAdd, toRemove) => {
 	return Array.from(map.keys());
 };
 
+const unique = (list, fn = null) => {
+	if (fn == null) fn = val => val;
+
+	const map = new Map();
+	list.forEach(item => map.set(fn(item), item));
+	return Array.from(map.values());
+};
+
 const prettyList = (list, lastSeparator = ' and ', separator = ', ') => {
 	if (list.length > 1) {
 		return list.slice(0, -1).join(separator) + lastSeparator + list[list.length - 1];
@@ -72,5 +80,6 @@ module.exports = {
 	leftPad,
 	indexBy,
 	modList,
-	prettyList
+	prettyList,
+	unique
 };

@@ -3,7 +3,7 @@ const settings = require('../settings');
 const AssignableRole = require('../models/AssignableRole');
 const AssignableRoleChannel = require('../models/AssignableRoleChannel');
 
-const normalizeRoleName = name => name.replace(/[^a-zA-Z]/g, '').toLowerCase();
+const normalizeRoleName = name => name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
 const findRoleByName = (guild, name) => {
 	const normalizedSearchName = normalizeRoleName(name);
@@ -148,6 +148,9 @@ module.exports = function(bot) {
 
 					return toRemove;
 				}, toRemove);
+
+				toAdd = util.unique(toAdd);
+				toRemove = util.unique(toRemove);
 
 				const promises = [];
 
