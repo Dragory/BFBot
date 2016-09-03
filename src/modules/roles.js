@@ -132,7 +132,8 @@ module.exports = function(bot) {
 
 		if (args.length === 0) {
 			getChannels(guild).then(channels => {
-				if (channels.indexOf(msg.channel.id) === -1) return;
+				// Non-admins can only use !roles on the specified role channels
+				if (! msg.member.permission.has('administrator') && channels.indexOf(msg.channel.id) === -1) return;
 
 				// Get assignable roles
 				AssignableRole.query()
