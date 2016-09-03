@@ -10,8 +10,12 @@ const defaults = {
 		value: false,
 		types: ['boolean']
 	},
-	'roles.autoDeleteResponseDelay': {
-		value: 5,
+	'roles.autoDeleteDelay': {
+		value: 7,
+		types: ['number']
+	},
+	'roles.autoDeleteListDelay': {
+		value: 10,
 		types: ['number']
 	}
 };
@@ -76,6 +80,10 @@ const set = (guildId, key, value) => {
 		});
 };
 
+const getAll = (guildId) => {
+	return getMultiple(guildId, Object.keys(defaults));
+};
+
 const reset = (guildId, key) => {
 	return Setting.query()
 		.where('guild_id', guildId)
@@ -84,4 +92,4 @@ const reset = (guildId, key) => {
 		.execute();
 };
 
-module.exports = {get, set, getMultiple, reset};
+module.exports = {get, set, getMultiple, reset, getAll};
