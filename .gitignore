@@ -2,3 +2,4 @@
 /config.js
 /knexfile.js
 /avatar.jpg
+/deploy_vars.sh
