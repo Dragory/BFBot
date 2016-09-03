@@ -96,15 +96,18 @@ module.exports = function(bot) {
 
 					// Save the new roles
 					bot.editGuildMember(guild.id, msg.author.id, {roles: newRoles}).then(() => {
-						const rolesNow = newRoles.filter(roleId => !! assignableRolesByRoleId[roleId]);
-						const roleNames = rolesNow.map(roleId => guild.roles.get(roleId).name);
+						const addedRoleNames = toAdd.map(roleId => guild.roles.get(roleId).name).map(name => `**${name}**`);
+						const removedRoleNames = toRemove.map(roleId => guild.roles.get(roleId).name).map(name => `**${name}**`);
 
-						if (rolesNow.length > 0) {
-							return bot.createMessage(msg.channel.id, `${msg.author.mention} You now have roles ${util.prettyList(roleNames)}`);
-						} else {
-							return bot.createMessage(msg.channel.id, `${msg.author.mention} You now have no roles`);
-						}
-					})
+						const addedStr = (addedRoleNames.length === 1 ? 'role' : 'roles');
+						const removedStr = (removedRoleNames.length === 1 ? 'role' : 'roles');
+
+						let msgParts = [];
+						if (addedRoleNames.length > 0) msgParts.push(`added ${addedStr} ${util.prettyList(addedRoleNames)}`);
+						if (removedRoleNames.length > 0) msgParts.push(`removed ${removedStr} ${util.prettyList(removedRoleNames)}`);
+
+						return bot.createMessage(msg.channel.id, `${msg.author.mention} ${msgParts.join(' and ')}`);
+					}, (e) => {console.error(e);})
 					.then(doneMsg => {
 						settings.getMultiple(guild.id, ['roles.autoDeleteMessages', 'roles.autoDeleteOtherMessages', 'roles.autoDeleteResponseDelay']).then(values => {
 							if (! values['roles.autoDeleteMessages']) return;
