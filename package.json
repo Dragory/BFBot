@@ -1,0 +1,19 @@
+{
+  "name": "bfbot",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "eris": "github:abalabahaha/eris#dev",
+    "knex": "^0.11.10",
+    "mariasql": "^0.2.6",
+    "moment": "^2.14.1",
+    "objection": "^0.5.5",
+    "punycode": "^2.0.0"
+  }
+}
