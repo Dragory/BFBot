@@ -73,10 +73,29 @@ const set = (guildId, key, value) => {
 	}
 
 	return Setting.query()
-		.insert({
-			guild_id: guildId,
-			key: key,
-			value: value
+		.where('guild_id', guildId)
+		.where('key', key)
+		.first()
+		.then(result => {
+			if (result === null) {
+				// New setting
+				return Setting.query()
+					.insert({
+						guild_id: guildId,
+						key: key,
+						value: value
+					})
+					.execute();
+			} else {
+				// Update existing setting
+				return Setting.query()
+					.where('id', result.id)
+					.update({
+						key: key,
+						value: value
+					})
+					.execute();
+			}
 		});
 };
 
