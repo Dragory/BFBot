@@ -69,7 +69,8 @@ const getMultiple = (guildId, keys) => {
 
 const set = (guildId, key, value) => {
 	if (! isValidType(key, value)) {
-		throw new Error(`Invalid type for setting "${key}"`);
+		const allowedTypes = getTypes(key).map(type => `'${type}'`);
+		return Promise.reject(new Error(`Invalid type for setting "${key}" (expected ${util.prettyList(allowedTypes, ' or ')})`));
 	}
 
 	return Setting.query()
@@ -111,4 +112,10 @@ const reset = (guildId, key) => {
 		.execute();
 };
 
-module.exports = {get, set, getMultiple, reset, getAll};
+const getTypes = key => {
+	if (typeof defaults[key] === 'undefined') return Promise.reject(new Error(`Unknown setting "${key}"`));
+
+	return defaults[key].types;
+};
+
+module.exports = {get, set, getMultiple, reset, getAll, getTypes};
