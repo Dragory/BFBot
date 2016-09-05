@@ -57,6 +57,8 @@ const getChannels = (guild) => {
 module.exports = function(bot) {
 	// Remove other messages on the role channels (typos, etc.) (controlled by roles.autoDeleteOtherMessages)
 	function deleteOtherMessage(msg) {
+		if (msg.member.permission.has('administrator')) return;
+
 		getChannels(msg.channel.guild).then(channels => {
 			if (channels.indexOf(msg.channel.id) === -1) return;
 
