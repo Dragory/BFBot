@@ -97,19 +97,34 @@ module.exports = function(bot) {
 
 					// Save the new roles
 					bot.editGuildMember(guild.id, msg.author.id, {roles: newRoles}).then(() => {
-						const addedRoleNames = toAdd.map(roleId => guild.roles.get(roleId).name).map(name => `**${name}**`);
-						const removedRoleNames = toRemove.map(roleId => guild.roles.get(roleId).name).map(name => `**${name}**`);
+						const actuallyAdded = newRoles.filter(role => msg.member.roles.indexOf(role) === -1);
+						const actuallyRemoved = msg.member.roles.filter(role => newRoles.indexOf(role) === -1);
 
-						const addedStr = (addedRoleNames.length === 1 ? 'role' : 'roles');
-						const removedStr = (removedRoleNames.length === 1 ? 'role' : 'roles');
+						if (actuallyAdded.length > 0 || actuallyRemoved.length > 0) {
+							const addedRoleNames = actuallyAdded.map(roleId => guild.roles.get(roleId).name).map(name => `**${name}**`);
+							const removedRoleNames = actuallyRemoved.map(roleId => guild.roles.get(roleId).name).map(name => `**${name}**`);
 
-						let msgParts = [];
-						if (addedRoleNames.length > 0) msgParts.push(`now have the ${addedStr} ${util.prettyList(addedRoleNames)}`);
-						if (removedRoleNames.length > 0) msgParts.push(`no longer have the ${removedStr} ${util.prettyList(removedRoleNames)}`);
+							const addedStr = (addedRoleNames.length === 1 ? 'role' : 'roles');
+							const removedStr = (removedRoleNames.length === 1 ? 'role' : 'roles');
 
-						return bot.createMessage(msg.channel.id, `${msg.author.mention} You ${msgParts.join(' and ')}`);
+							let msgParts = [];
+							if (addedRoleNames.length > 0) msgParts.push(`now have the ${addedStr} ${util.prettyList(addedRoleNames)}`);
+							if (removedRoleNames.length > 0) msgParts.push(`no longer have the ${removedStr} ${util.prettyList(removedRoleNames)}`);
+
+							return bot.createMessage(msg.channel.id, `${msg.author.mention} You ${msgParts.join(' and ')}`);
+						} else {
+							if (toAdd.length > 0) {
+								const text = (toAdd.length === 1 ? 'that role' : 'those roles');
+								return bot.createMessage(msg.channel.id, `${msg.author.mention} You already have ${text}!`);
+							} else {
+								const text = (toRemove.length === 1 ? 'that role' : 'those roles');
+								return bot.createMessage(msg.channel.id, `${msg.author.mention} You don't have ${text}!`);
+							}
+						}
 					}, (e) => {console.error(e);})
 					.then(doneMsg => {
+						if (! doneMsg) return;
+
 						settings.getMultiple(guild.id, ['roles.autoDeleteMessages', 'roles.autoDeleteOtherMessages', 'roles.autoDeleteDelay']).then(values => {
 							if (! values['roles.autoDeleteMessages']) return;
 
