@@ -7,6 +7,7 @@ const statusModule = require('./modules/status');
 
 const settingsModule = require('./modules/settings');
 const rolesModule = require('./modules/roles');
+const miscModule = require('./modules/misc');
 
 // Initialize bot
 const bot = new Eris.CommandClient(config.token, {}, {
@@ -26,6 +27,7 @@ statusModule(bot);
 
 settingsModule(bot);
 rolesModule(bot);
+miscModule(bot);
 
 // Start the bot
 bot.connect();
