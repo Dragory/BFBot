@@ -18,5 +18,10 @@ module.exports = {
 	'roles.recruitRole': {
 		value: null,
 		types: ['string', 'null']
-	}
+	},
+
+	'greeting': {
+		value: null,
+		types: ['string', 'null']
+	},
 };
