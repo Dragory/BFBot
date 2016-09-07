@@ -280,4 +280,75 @@ module.exports = function(bot) {
 				console.error(e);
 			});
 	});
+
+	bot.registerCommand('recruit_role', (msg, args) => {
+		if (! msg.member) return;
+		if (! msg.member.permission.has('administrator')) return;
+
+		if (args.length === 0) {
+			// Return current recruit role
+			settings.get(msg.channel.guild.id, 'roles.recruitRole').then(roleId => {
+				if (roleId) {
+					const role = msg.channel.guild.roles.get(roleId);
+
+					if (role) {
+						bot.createMessage(msg.channel.id, `Recruit role is currently ${role.mention}`);
+					} else {
+						bot.createMessage(msg.channel.id, `Recruit role is currently <INVALID ROLE ${roleId}>`);
+					}
+				} else {
+					bot.createMessage(msg.channel.id, `Recruit role is currently unset`);
+				}
+			}, e => {
+				console.error(e);
+			});
+		} else if (args.length === 1 && args[0] === 'reset') {
+			// Reset recruit role
+			settings.set(msg.channel.guild.id, 'roles.recruitRole', null).then(() => {
+				bot.createMessage(msg.channel.id, `Recruit role reset`);
+			});
+		} else {
+			// Set recruit role
+			const role = msg.roleMentions[0];
+			if (! role) return;
+
+			settings.set(msg.channel.guild.id, 'roles.recruitRole', role, true).then(() => {
+				bot.createMessage(msg.channel.id, `Recruit role updated (now ${msg.channel.guild.roles.get(role).mention})`);
+			}, e => console.error(e));
+		}
+	});
+
+	// When a user joins the server, give them the Recruit role
+	bot.on('guildMemberAdd', (guild, member) => {
+		settings.get(guild.id, 'roles.recruitRole').then(recruitRoleId => {
+			if (recruitRoleId == null) return;
+
+			// If they already have the Recruit role, ignore
+			const hasRecruitRole = member.roles.some(roleId => roleId === recruitRoleId);
+			if (hasRecruitRole) return;
+
+			// If they already have other roles, ignore
+			const hasOtherRoles = member.roles.some(roleId => roleId !== recruitRoleId);
+			if (hasOtherRoles) return;
+
+			const newRoles = member.roles.concat(recruitRoleId);
+			bot.editGuildMember(guild.id, member.id, {roles: newRoles});
+		});
+	});
+
+	// When a user gets any role other than Recruit, remove Recruit
+	bot.on('guildMemberUpdate', (guild, member) => {
+		settings.get(guild.id, 'roles.recruitRole').then(recruitRoleId => {
+			if (recruitRoleId == null) return;
+
+			const hasRecruitRole = member.roles.some(roleId => roleId === recruitRoleId);
+			if (! hasRecruitRole) return;
+
+			const hasOtherRoles = member.roles.some(roleId => roleId !== recruitRoleId);
+			if (! hasOtherRoles) return;
+
+			const newRoles = member.roles.filter(roleId => roleId !== recruitRoleId);
+			bot.editGuildMember(guild.id, member.id, {roles: newRoles});
+		});
+	});
 };
