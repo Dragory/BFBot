@@ -1,50 +1,42 @@
 const util = require('./util');
 const Setting = require('./models/Setting');
+const defaults = require('./defaultSettings');
 
-const defaults = {
-	'roles.autoDeleteMessages': {
-		value: true,
-		types: ['boolean']
-	},
-	'roles.autoDeleteOtherMessages': {
-		value: false,
-		types: ['boolean']
-	},
-	'roles.autoDeleteDelay': {
-		value: 7,
-		types: ['number']
-	},
-	'roles.autoDeleteListDelay': {
-		value: 10,
-		types: ['number']
-	}
+const serialize = (value) => {
+	return JSON.stringify(value);
 };
 
 const unserialize = (serializedValue) => {
-	let value;
-
-	try { value = JSON.parse(serializedValue); }
-	catch (e) { value = serializedValue; }
-
-	return value;
+	return JSON.parse(serializedValue);
 };
 
+// Returns the type of the given setting value
+// At the moment this is basically just typeof with a custom type for null/undefined
+const getType = (value) => {
+	if (value == null) return 'null';
+	return typeof value;
+};
+
+const isValidType = (key, value) => {
+	const type = getType(value);
+	return (defaults[key].types.indexOf(type) !== -1);
+};
+
+// Unserializes and returns the given setting's value
+// If the setting doesn't exist or the value is of an invalid type, return the default value instead
 const getSettingValue = (setting, key) => {
 	if (! setting) return defaults[key].value;
 
 	const value = unserialize(setting.value);
-	if (defaults[key].types.indexOf(typeof value) === -1) return defaults[key].value;
+	if (! isValidType(key, value)) return defaults[key].value;
 
 	return value;
 };
 
-const isValidType = (key, value) => {
-	value = unserialize(value);
-	return (defaults[key].types.indexOf(typeof value) !== -1);
-};
-
 const get = (guildId, key) => {
-	if (typeof defaults[key] === 'undefined') return Promise.reject(new Error(`Unknown setting "${key}"`));
+	if (typeof defaults[key] === 'undefined') {
+		return Promise.reject(new Error(`Unknown setting "${key}"`));
+	}
 
 	return Setting.query()
 		.where('guild_id', guildId)
@@ -67,41 +59,46 @@ const getMultiple = (guildId, keys) => {
 		});
 };
 
+const getAll = (guildId) => {
+	return getMultiple(guildId, Object.keys(defaults));
+};
+
 const set = (guildId, key, value) => {
 	if (! isValidType(key, value)) {
 		const allowedTypes = getTypes(key).map(type => `'${type}'`);
-		return Promise.reject(new Error(`Invalid type for setting "${key}" (expected ${util.prettyList(allowedTypes, ' or ')})`));
+		const type = getType(value);
+
+		return Promise.reject(new Error(`Invalid type for setting "${key}" (expected ${util.prettyList(allowedTypes, ' or ')}, got '${type}')`));
 	}
+
+	const serialized = serialize(value);
 
 	return Setting.query()
 		.where('guild_id', guildId)
 		.where('key', key)
 		.first()
 		.then(result => {
-			if (result === null) {
+			if (result == null) {
 				// New setting
 				return Setting.query()
 					.insert({
 						guild_id: guildId,
 						key: key,
-						value: value
+						value: serialized
 					})
 					.execute();
 			} else {
 				// Update existing setting
 				return Setting.query()
-					.where('id', result.id)
+					.where('guild_id', result.guild_id)
+					.where('key', result.key)
 					.update({
 						key: key,
-						value: value
+						value: serialized
 					})
 					.execute();
 			}
 		});
-};
-
-const getAll = (guildId) => {
-	return getMultiple(guildId, Object.keys(defaults));
 };
 
 const reset = (guildId, key) => {
@@ -118,4 +115,10 @@ const getTypes = key => {
 	return defaults[key].types;
 };
 
-module.exports = {get, set, getMultiple, reset, getAll, getTypes};
+module.exports = {
+	get, getMultiple, getAll,
+	set,
+	reset,
+	getTypes,
+	serialize, unserialize,
+};
