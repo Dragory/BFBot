@@ -41,14 +41,14 @@ const getModsFromText = str => {
 let assignableRoleChannels = {}; // Cached
 
 const getChannels = (guild) => {
-	if (assignableRoleChannels[guild]) {
-		return Promise.resolve(assignableRoleChannels[guild]);
+	if (assignableRoleChannels[guild.id]) {
+		return Promise.resolve(assignableRoleChannels[guild.id]);
 	} else {
 		return AssignableRoleChannel.query()
 			.where('guild_id', guild.id)
 			.then(channels => channels.map(channel => channel.channel_id))
 			.then(channels => {
-				assignableRoleChannels[guild] = channels;
+				assignableRoleChannels[guild.id] = channels;
 				return channels;
 			});
 	}
