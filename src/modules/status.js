@@ -7,7 +7,7 @@ module.exports = function(bot) {
   bot.registerCommand('status', (msg) => {
     if (! util.canTalk(bot, msg.channel)) return;
     const uptime = Date.now() - bootTime;
-    const uptimeStr = humanizeDuration(uptime, {largest: 2});
+    const uptimeStr = humanizeDuration(uptime, {largest: 3, round: true, conjunction: ' and '});
 
     return `Uptime: ${uptimeStr}`;
   });

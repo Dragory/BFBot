@@ -1,3 +1,4 @@
+const AsciiTable = require('ascii-table');
 const cooldown = require('../cooldown');
 
 module.exports = function(bot) {
@@ -12,5 +13,16 @@ module.exports = function(bot) {
     `.trim().split('\n').map(v => v.trim()).join('\n');
 
     bot.createMessage(msg.channel.id, text);
+  });
+
+  bot.registerCommand('rolelist', msg => {
+    const table = new AsciiTable();
+    table.setHeading('id', 'name');
+
+    msg.channel.guild.roles.forEach(role => {
+      table.addRow(role.id, role.name);
+    });
+
+    msg.channel.createMessage('```' + table.toString() + '```');
   });
 };

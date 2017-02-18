@@ -74,6 +74,24 @@ const prettyList = (list, lastSeparator = ' and ', separator = ', ') => {
 	}
 };
 
+// Mod = +THING, -THING
+const parseModsFromString = str => {
+  const mods = {
+    add: [],
+    remove: []
+  };
+
+  const matcher = /(?:^|\s)([+-])([a-z0-9]+)\b/gi;
+  let match;
+
+  while ((match = matcher.exec(str)) !== null) {
+    if (match[1] === '+') mods.add.push(match[2]);
+    else mods.remove.push(match[2]);
+  }
+
+  return mods;
+};
+
 module.exports = {
 	recursiveAssign,
 	canTalk,
@@ -81,5 +99,6 @@ module.exports = {
 	indexBy,
 	modList,
 	prettyList,
-	unique
+	unique,
+  parseModsFromString,
 };

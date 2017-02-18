@@ -18,14 +18,14 @@ module.exports = function(bot) {
       const done = () => bot.createMessage(msg.channel.id, `\`${key}\` is now \`${value}\``);
       const err = (e) => bot.createMessage(msg.channel.id, `**[ERROR]** ${e.message}`);
 
+      // For convenience, strings values can be given like numbers, without quotation marks
+      // This is done by assuming the value is a string value if unserializing it fails
       let unserialized;
       try { unserialized = settings.unserialize(value); }
       catch (e) { unserialized = value; }
 
       settings.set(msg.channel.guild.id, key, unserialized)
         .then(done, e => {
-          // For convenience, strings values can be given like numbers, without quotation marks.
-          // To do this, if setting the setting fails, cast number values as strings and try again
           if (typeof unserialized === 'number') {
             settings.set(msg.channel.guild.id, key, unserialized.toString()).then(done, err);
           } else {
@@ -56,11 +56,7 @@ module.exports = function(bot) {
 
     settings.getAll(msg.channel.guild.id)
       .then(settings => {
-        const text = Object.keys(settings).map(key => {
-          const value = settings[key];
-          return `\`${key}\` is \`${value}\``;
-        }).join('\n');
-
+        const text = 'Available settings:\n```' + Object.keys(settings).join(', ') + '```';
         bot.createMessage(msg.channel.id, text);
       });
   };

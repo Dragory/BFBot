@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "ascii-table": "^0.0.9",
     "eris": "github:abalabahaha/eris#dev",
     "humanize-duration": "^3.10.0",
     "knex": "^0.11.10",

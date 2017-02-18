@@ -16,9 +16,6 @@ module.exports = function(bot) {
   });
 
   bot.registerCommand('greeting', (msg, args) => {
-    if (! msg.member) return;
-    if (! msg.member.permission.has('administrator')) return;
-
     const greeting = args.join(' ');
     if (greeting === '') {
       settings.get(msg.channel.guild.id, 'greeting').then(greeting => {
