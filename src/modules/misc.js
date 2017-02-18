@@ -16,13 +16,17 @@ module.exports = function(bot) {
   });
 
   bot.registerCommand('rolelist', msg => {
-    const table = new AsciiTable();
-    table.setHeading('id', 'name');
+    const roleChunks = Array.from(msg.channel.guild.roles.values()).reduce((chunks, role) => {
+      if (chunks[chunks.length - 1] == null || chunks[chunks.length - 1].length > 10) chunks.push([]);
+      chunks[chunks.length - 1].push(role);
+      return chunks;
+    }, []);
 
-    msg.channel.guild.roles.forEach(role => {
-      table.addRow(role.id, role.name);
+    roleChunks.forEach(roles => {
+      const table = new AsciiTable();
+      table.setHeading('id', 'name');
+      roles.forEach(r => table.addRow(r.id, r.name));
+      msg.channel.createMessage('```' + table.toString() + '```');
     });
-
-    msg.channel.createMessage('```' + table.toString() + '```');
   });
 };
