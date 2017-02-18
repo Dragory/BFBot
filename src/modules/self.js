@@ -11,9 +11,6 @@ module.exports = function(bot) {
   };
 
   bot.registerCommand('self_refresh', msg => {
-    if (! msg.member) return;
-    if (! msg.member.permission.has('administrator')) return;
-
     if (config.avatar) {
       fs.readFile(config.avatar, (err, data) => {
         const base64data = 'data:image/jpeg;base64,' + (new Buffer(data)).toString('base64');

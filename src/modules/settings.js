@@ -2,9 +2,6 @@ const settings = require('../settings');
 
 module.exports = function(bot) {
   const setCmd = (msg, args) => {
-    if (! msg.member) return;
-    if (! msg.member.permission.has('administrator')) return;
-
     if (args.length < 2) return;
 
     let key = args[0];
@@ -36,9 +33,6 @@ module.exports = function(bot) {
   };
 
   const getCmd = (msg, args) => {
-    if (! msg.member) return;
-    if (! msg.member.permission.has('administrator')) return;
-
     if (args.length < 1) return;
 
     let key = args[0];
@@ -51,9 +45,6 @@ module.exports = function(bot) {
   };
 
   const allCmd = (msg, args) => {
-    if (! msg.member) return;
-    if (! msg.member.permission.has('administrator')) return;
-
     settings.getAll(msg.channel.guild.id)
       .then(settings => {
         const text = 'Available settings:\n```' + Object.keys(settings).join(', ') + '```';

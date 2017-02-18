@@ -39,7 +39,7 @@ const getChannels = (guild) => {
 module.exports = function(bot) {
   // Remove other messages on the role channels (typos, etc.) (controlled by roles.autoDeleteOtherMessages)
   function deleteOtherMessage(msg) {
-    if (msg.member.permission.has('administrator')) return;
+    if (msg.member.permission.has('kickMembers')) return;
 
     getChannels(msg.channel.guild).then(channels => {
       if (channels.indexOf(msg.channel.id) === -1) return;
@@ -132,7 +132,7 @@ module.exports = function(bot) {
     if (args.length === 0) {
       getChannels(guild).then(channels => {
         // Non-admins can only use !roles on the specified role channels
-        if (! msg.member.permission.has('administrator') && channels.indexOf(msg.channel.id) === -1) return;
+        if (! msg.member.permission.has('kickMembers') && channels.indexOf(msg.channel.id) === -1) return;
 
         // Get assignable roles
         AssignableRole.query()
@@ -159,7 +159,7 @@ module.exports = function(bot) {
       });
     } else {
       // (ADMIN) Set assignable roles
-      if (! msg.member.permission.has('administrator')) return;
+      if (! msg.member.permission.has('kickMembers')) return;
 
       const roleMods = util.parseModsFromString(args.join(' '));
       let toAdd = findRolesByName(guild, roleMods.add).map(role => role.id);
