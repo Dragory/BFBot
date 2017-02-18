@@ -20,15 +20,17 @@ module.exports = function(bot) {
       ];
     }
 
+    function maybeDelete() {
+      if (msg.member.permission.has('kickMembers')) return;
+      msg.delete();
+    }
+
     Promise.all(welcomePromises[guildId]).then(([channelId, cmd, roleId]) => {
       if (msg.channel.id !== channelId) return;
-      if (msg.cleanContent.toLowerCase() !== cmd.toLowerCase()) return;
-      if (msg.member.roles.indexOf(roleId) !== -1) return;
+      if (msg.cleanContent.toLowerCase() !== cmd.toLowerCase()) return maybeDelete();
+      if (msg.member.roles.indexOf(roleId) !== -1) return maybeDelete();
 
-      msg.member.addRole(roleId).then(() => {
-        if (msg.member.permission.has('kickMembers')) return;
-        msg.delete();
-      });
+      msg.member.addRole(roleId).then(maybeDelete);
     });
   });
 
