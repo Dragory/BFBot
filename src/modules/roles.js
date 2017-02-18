@@ -6,349 +6,349 @@ const AssignableRoleChannel = require('../models/AssignableRoleChannel');
 const normalizeRoleName = name => name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
 const findRoleByName = (guild, name) => {
-	const normalizedSearchName = normalizeRoleName(name);
+  const normalizedSearchName = normalizeRoleName(name);
 
-	return guild.roles.find(role => {
-		const normalizedRoleName = normalizeRoleName(role.name);
-		return (normalizedSearchName === normalizedRoleName);
-	});
+  return guild.roles.find(role => {
+    const normalizedRoleName = normalizeRoleName(role.name);
+    return (normalizedSearchName === normalizedRoleName);
+  });
 };
 
 const findRolesByName = (guild, list) => {
-	return list
-		.map(roleName => findRoleByName(guild, roleName))
-		.filter(role => role !== null);
+  return list
+    .map(roleName => findRoleByName(guild, roleName))
+    .filter(role => role !== null);
 };
 
 // Mod = +THING, -THING
 const getModsFromText = str => {
-	const mods = {
-		add: [],
-		remove: []
-	};
+  const mods = {
+    add: [],
+    remove: []
+  };
 
-	const matcher = /(?:^|\s)([+-])([a-z0-9]+)\b/gi;
-	let match;
+  const matcher = /(?:^|\s)([+-])([a-z0-9]+)\b/gi;
+  let match;
 
-	while ((match = matcher.exec(str)) !== null) {
-		if (match[1] === '+') mods.add.push(match[2]);
-		else mods.remove.push(match[2]);
-	}
+  while ((match = matcher.exec(str)) !== null) {
+    if (match[1] === '+') mods.add.push(match[2]);
+    else mods.remove.push(match[2]);
+  }
 
-	return mods;
+  return mods;
 };
 
 let assignableRoleChannels = {}; // Cached
 
 const getChannels = (guild) => {
-	if (assignableRoleChannels[guild.id]) {
-		return Promise.resolve(assignableRoleChannels[guild.id]);
-	} else {
-		return AssignableRoleChannel.query()
-			.where('guild_id', guild.id)
-			.then(channels => channels.map(channel => channel.channel_id))
-			.then(channels => {
-				assignableRoleChannels[guild.id] = channels;
-				return channels;
-			});
-	}
+  if (assignableRoleChannels[guild.id]) {
+    return Promise.resolve(assignableRoleChannels[guild.id]);
+  } else {
+    return AssignableRoleChannel.query()
+      .where('guild_id', guild.id)
+      .then(channels => channels.map(channel => channel.channel_id))
+      .then(channels => {
+        assignableRoleChannels[guild.id] = channels;
+        return channels;
+      });
+  }
 };
 
 module.exports = function(bot) {
-	// Remove other messages on the role channels (typos, etc.) (controlled by roles.autoDeleteOtherMessages)
-	function deleteOtherMessage(msg) {
-		if (msg.member.permission.has('administrator')) return;
+  // Remove other messages on the role channels (typos, etc.) (controlled by roles.autoDeleteOtherMessages)
+  function deleteOtherMessage(msg) {
+    if (msg.member.permission.has('administrator')) return;
 
-		getChannels(msg.channel.guild).then(channels => {
-			if (channels.indexOf(msg.channel.id) === -1) return;
+    getChannels(msg.channel.guild).then(channels => {
+      if (channels.indexOf(msg.channel.id) === -1) return;
 
-			settings.get(msg.channel.guild.id, 'roles.autoDeleteOtherMessages').then(value => {
-				if (! value) return;
-				bot.deleteMessage(msg.channel.id, msg.id);
-			});
-		});
-	}
+      settings.get(msg.channel.guild.id, 'roles.autoDeleteOtherMessages').then(value => {
+        if (! value) return;
+        bot.deleteMessage(msg.channel.id, msg.id);
+      });
+    });
+  }
 
-	// Allow adding/removing assignable roles by saying +ROLE or -ROLE respectively
-	bot.on('messageCreate', msg => {
-		if (! msg.member) return;
-		if (msg.author.bot) return;
-		if (msg.content === '!roles') return;
-		if (msg.content[0] === '!') return deleteOtherMessage(msg);
+  // Allow adding/removing assignable roles by saying +ROLE or -ROLE respectively
+  bot.on('messageCreate', msg => {
+    if (! msg.member) return;
+    if (msg.author.bot) return;
+    if (msg.content === '!roles') return;
+    if (msg.content[0] === '!') return deleteOtherMessage(msg);
 
-		const guild = msg.channel.guild;
-		getChannels(guild).then(channels => {
-			if (channels.indexOf(msg.channel.id) === -1) return;
+    const guild = msg.channel.guild;
+    getChannels(guild).then(channels => {
+      if (channels.indexOf(msg.channel.id) === -1) return;
 
-			const roleMods = getModsFromText(msg.content);
-			let toAdd = findRolesByName(guild, roleMods.add).map(role => role.id);
-			let toRemove = findRolesByName(guild, roleMods.remove).map(role => role.id);
+      const roleMods = getModsFromText(msg.content);
+      let toAdd = findRolesByName(guild, roleMods.add).map(role => role.id);
+      let toRemove = findRolesByName(guild, roleMods.remove).map(role => role.id);
 
-			if (toAdd.length === 0 && toRemove.length === 0) return deleteOtherMessage(msg);
+      if (toAdd.length === 0 && toRemove.length === 0) return deleteOtherMessage(msg);
 
-			AssignableRole.query()
-				.where('guild_id', guild.id)
-				.then(result => {
-					const assignableRolesByRoleId = util.indexBy(result, 'role_id');
+      AssignableRole.query()
+        .where('guild_id', guild.id)
+        .then(result => {
+          const assignableRolesByRoleId = util.indexBy(result, 'role_id');
 
-					// Restrict the to-be-added-or-removed roles to the assignable roles for this server
-					toAdd = toAdd.filter(roleId => !! assignableRolesByRoleId[roleId]);
-					toRemove = toRemove.filter(roleId => !! assignableRolesByRoleId[roleId]);
+          // Restrict the to-be-added-or-removed roles to the assignable roles for this server
+          toAdd = toAdd.filter(roleId => !! assignableRolesByRoleId[roleId]);
+          toRemove = toRemove.filter(roleId => !! assignableRolesByRoleId[roleId]);
 
-					const newRoles = util.modList(msg.member.roles, toAdd, toRemove);
+          const newRoles = util.modList(msg.member.roles, toAdd, toRemove);
 
-					// Save the new roles
-					bot.editGuildMember(guild.id, msg.author.id, {roles: newRoles}).then(() => {
-						const actuallyAdded = newRoles.filter(role => msg.member.roles.indexOf(role) === -1);
-						const actuallyRemoved = msg.member.roles.filter(role => newRoles.indexOf(role) === -1);
+          // Save the new roles
+          bot.editGuildMember(guild.id, msg.author.id, {roles: newRoles}).then(() => {
+            const actuallyAdded = newRoles.filter(role => msg.member.roles.indexOf(role) === -1);
+            const actuallyRemoved = msg.member.roles.filter(role => newRoles.indexOf(role) === -1);
 
-						if (actuallyAdded.length > 0 || actuallyRemoved.length > 0) {
-							const addedRoleNames = actuallyAdded.map(roleId => guild.roles.get(roleId).name).map(name => `**${name}**`);
-							const removedRoleNames = actuallyRemoved.map(roleId => guild.roles.get(roleId).name).map(name => `**${name}**`);
+            if (actuallyAdded.length > 0 || actuallyRemoved.length > 0) {
+              const addedRoleNames = actuallyAdded.map(roleId => guild.roles.get(roleId).name).map(name => `**${name}**`);
+              const removedRoleNames = actuallyRemoved.map(roleId => guild.roles.get(roleId).name).map(name => `**${name}**`);
 
-							const addedStr = (addedRoleNames.length === 1 ? 'role' : 'roles');
-							const removedStr = (removedRoleNames.length === 1 ? 'role' : 'roles');
+              const addedStr = (addedRoleNames.length === 1 ? 'role' : 'roles');
+              const removedStr = (removedRoleNames.length === 1 ? 'role' : 'roles');
 
-							let msgParts = [];
-							if (addedRoleNames.length > 0) msgParts.push(`now have the ${addedStr} ${util.prettyList(addedRoleNames)}`);
-							if (removedRoleNames.length > 0) msgParts.push(`no longer have the ${removedStr} ${util.prettyList(removedRoleNames)}`);
+              let msgParts = [];
+              if (addedRoleNames.length > 0) msgParts.push(`now have the ${addedStr} ${util.prettyList(addedRoleNames)}`);
+              if (removedRoleNames.length > 0) msgParts.push(`no longer have the ${removedStr} ${util.prettyList(removedRoleNames)}`);
 
-							return bot.createMessage(msg.channel.id, `${msg.author.mention} You ${msgParts.join(' and ')}`);
-						} else {
-							if (toAdd.length > 0) {
-								const text = (toAdd.length === 1 ? 'that role' : 'those roles');
-								return bot.createMessage(msg.channel.id, `${msg.author.mention} You already have ${text}!`);
-							} else {
-								const text = (toRemove.length === 1 ? 'that role' : 'those roles');
-								return bot.createMessage(msg.channel.id, `${msg.author.mention} You don't have ${text}!`);
-							}
-						}
-					}, (e) => {console.error(e);})
-					.then(doneMsg => {
-						if (! doneMsg) return;
+              return bot.createMessage(msg.channel.id, `${msg.author.mention} You ${msgParts.join(' and ')}`);
+            } else {
+              if (toAdd.length > 0) {
+                const text = (toAdd.length === 1 ? 'that role' : 'those roles');
+                return bot.createMessage(msg.channel.id, `${msg.author.mention} You already have ${text}!`);
+              } else {
+                const text = (toRemove.length === 1 ? 'that role' : 'those roles');
+                return bot.createMessage(msg.channel.id, `${msg.author.mention} You don't have ${text}!`);
+              }
+            }
+          }, (e) => {console.error(e);})
+          .then(doneMsg => {
+            if (! doneMsg) return;
 
-						settings.getMultiple(guild.id, ['roles.autoDeleteMessages', 'roles.autoDeleteOtherMessages', 'roles.autoDeleteDelay']).then(values => {
-							if (! values['roles.autoDeleteMessages']) return;
+            settings.getMultiple(guild.id, ['roles.autoDeleteMessages', 'roles.autoDeleteOtherMessages', 'roles.autoDeleteDelay']).then(values => {
+              if (! values['roles.autoDeleteMessages']) return;
 
-							const deleteDelay = parseInt(values['roles.autoDeleteDelay'], 10) * 1000;
-							setTimeout(() => {
-								bot.deleteMessage(msg.channel.id, msg.id);
-								bot.deleteMessage(msg.channel.id, doneMsg.id);
-							}, deleteDelay);
-						});
-					});
-				});
-		});
-	});
+              const deleteDelay = parseInt(values['roles.autoDeleteDelay'], 10) * 1000;
+              setTimeout(() => {
+                bot.deleteMessage(msg.channel.id, msg.id);
+                bot.deleteMessage(msg.channel.id, doneMsg.id);
+              }, deleteDelay);
+            });
+          });
+        });
+    });
+  });
 
-	// Assignable roles
-	bot.registerCommand('roles', (msg, args) => {
-		if (! msg.member) return;
+  // Assignable roles
+  bot.registerCommand('roles', (msg, args) => {
+    if (! msg.member) return;
 
-		const guild = msg.channel.guild;
+    const guild = msg.channel.guild;
 
-		if (args.length === 0) {
-			getChannels(guild).then(channels => {
-				// Non-admins can only use !roles on the specified role channels
-				if (! msg.member.permission.has('administrator') && channels.indexOf(msg.channel.id) === -1) return;
+    if (args.length === 0) {
+      getChannels(guild).then(channels => {
+        // Non-admins can only use !roles on the specified role channels
+        if (! msg.member.permission.has('administrator') && channels.indexOf(msg.channel.id) === -1) return;
 
-				// Get assignable roles
-				AssignableRole.query()
-					.where('guild_id', guild.id)
-					.then(assignableRoles => {
-						const assignableRoleNames = assignableRoles.map(assignableRole => {
-							const role = guild.roles.get(assignableRole.role_id);
-							return (role ? `**${role.name}**` : `[UNKNOWN ROLE ${assignableRole.role_id}]`);
-						});
+        // Get assignable roles
+        AssignableRole.query()
+          .where('guild_id', guild.id)
+          .then(assignableRoles => {
+            const assignableRoleNames = assignableRoles.map(assignableRole => {
+              const role = guild.roles.get(assignableRole.role_id);
+              return (role ? `**${role.name}**` : `[UNKNOWN ROLE ${assignableRole.role_id}]`);
+            });
 
-						bot.createMessage(msg.channel.id, `The following roles are available: ${util.prettyList(assignableRoleNames)}`)
-							.then(listMsg => {
-								settings.getMultiple(guild.id, ['roles.autoDeleteMessages', 'roles.autoDeleteListDelay']).then(values => {
-									if (! values['roles.autoDeleteMessages']) return;
+            bot.createMessage(msg.channel.id, `The following roles are available: ${util.prettyList(assignableRoleNames)}`)
+              .then(listMsg => {
+                settings.getMultiple(guild.id, ['roles.autoDeleteMessages', 'roles.autoDeleteListDelay']).then(values => {
+                  if (! values['roles.autoDeleteMessages']) return;
 
-									const deleteDelay = parseInt(values['roles.autoDeleteListDelay'], 10) * 1000;
-									setTimeout(() => {
-										bot.deleteMessage(msg.channel.id, msg.id);
-										bot.deleteMessage(msg.channel.id, listMsg.id);
-									}, deleteDelay);
-								});
-							});
-					});
-			});
-		} else {
-			// (ADMIN) Set assignable roles
-			if (! msg.member.permission.has('administrator')) return;
+                  const deleteDelay = parseInt(values['roles.autoDeleteListDelay'], 10) * 1000;
+                  setTimeout(() => {
+                    bot.deleteMessage(msg.channel.id, msg.id);
+                    bot.deleteMessage(msg.channel.id, listMsg.id);
+                  }, deleteDelay);
+                });
+              });
+          });
+      });
+    } else {
+      // (ADMIN) Set assignable roles
+      if (! msg.member.permission.has('administrator')) return;
 
-			const roleMods = getModsFromText(args.join(' '));
-			let toAdd = findRolesByName(guild, roleMods.add).map(role => role.id);
-			let toRemove = findRolesByName(guild, roleMods.remove).map(role => role.id);
+      const roleMods = getModsFromText(args.join(' '));
+      let toAdd = findRolesByName(guild, roleMods.add).map(role => role.id);
+      let toRemove = findRolesByName(guild, roleMods.remove).map(role => role.id);
 
-			if (toAdd.length === 0 && toRemove.length === 0) return;
+      if (toAdd.length === 0 && toRemove.length === 0) return;
 
-			AssignableRole.query()
-				.where('guild_id', guild.id)
-				.then(assignableRoles => {
-					const assignableRolesByRoleId = util.indexBy(assignableRoles, 'role_id');
+      AssignableRole.query()
+        .where('guild_id', guild.id)
+        .then(assignableRoles => {
+          const assignableRolesByRoleId = util.indexBy(assignableRoles, 'role_id');
 
-					// Remove duplicate roles
-					toAdd = toAdd.filter(roleId => ! assignableRolesByRoleId[roleId]);
+          // Remove duplicate roles
+          toAdd = toAdd.filter(roleId => ! assignableRolesByRoleId[roleId]);
 
-					// Cleanup: add non-existing assignable roles to the toRemove list
-					toRemove = assignableRoles.reduce((toRemove, assignableRole) => {
-						if (guild.roles.get(assignableRole.role_id) === null) {
-							toRemove.push(assignableRole.role_id);
-						}
+          // Cleanup: add non-existing assignable roles to the toRemove list
+          toRemove = assignableRoles.reduce((toRemove, assignableRole) => {
+            if (guild.roles.get(assignableRole.role_id) === null) {
+              toRemove.push(assignableRole.role_id);
+            }
 
-						return toRemove;
-					}, toRemove);
+            return toRemove;
+          }, toRemove);
 
-					toAdd = util.unique(toAdd);
-					toRemove = util.unique(toRemove);
+          toAdd = util.unique(toAdd);
+          toRemove = util.unique(toRemove);
 
-					const promises = [];
+          const promises = [];
 
-					if (toAdd.length > 0) {
-						toAdd.forEach(roleId => {
-							let q = AssignableRole.query()
-								.insert({
-									guild_id: guild.id,
-									role_id: roleId
-								});
+          if (toAdd.length > 0) {
+            toAdd.forEach(roleId => {
+              let q = AssignableRole.query()
+                .insert({
+                  guild_id: guild.id,
+                  role_id: roleId
+                });
 
-							promises.push(q);
-						});
-					}
+              promises.push(q);
+            });
+          }
 
-					if (toRemove.length > 0) {
-						let q = AssignableRole.query()
-							.where('guild_id', guild.id)
-							.whereIn('role_id', toRemove)
-							.delete();
+          if (toRemove.length > 0) {
+            let q = AssignableRole.query()
+              .where('guild_id', guild.id)
+              .whereIn('role_id', toRemove)
+              .delete();
 
-						promises.push(q);
-					}
+            promises.push(q);
+          }
 
-					Promise.all(promises)
-						.then(() => {
-							return AssignableRole.query().where('guild_id', guild.id);
-						})
-						.then(result => {
-							const assignableRoleNames = result.map(assignableRole => {
-								const role = guild.roles.get(assignableRole.role_id);
-								return (role ? role.name : `[UNKNOWN ROLE ${assignableRole.role_id}]`);
-							});
+          Promise.all(promises)
+            .then(() => {
+              return AssignableRole.query().where('guild_id', guild.id);
+            })
+            .then(result => {
+              const assignableRoleNames = result.map(assignableRole => {
+                const role = guild.roles.get(assignableRole.role_id);
+                return (role ? role.name : `[UNKNOWN ROLE ${assignableRole.role_id}]`);
+              });
 
-							bot.createMessage(msg.channel.id, `Roles updated! Assignable roles are now: ${util.prettyList(assignableRoleNames)}`);
-						});
-				});
-		}
-	});
+              bot.createMessage(msg.channel.id, `Roles updated! Assignable roles are now: ${util.prettyList(assignableRoleNames)}`);
+            });
+        });
+    }
+  });
 
-	// (ADMIN) Set channels where roles can be assigned
-	bot.registerCommand('role_channels', msg => {
-		if (! msg.member) return;
-		if (! msg.member.permission.has('administrator')) return;
+  // (ADMIN) Set channels where roles can be assigned
+  bot.registerCommand('role_channels', msg => {
+    if (! msg.member) return;
+    if (! msg.member.permission.has('administrator')) return;
 
-		const guild = msg.channel.guild;
+    const guild = msg.channel.guild;
 
-		const channels = msg.channelMentions;
-		if (channels.length === 0) return;
+    const channels = msg.channelMentions;
+    if (channels.length === 0) return;
 
-		const del = AssignableRoleChannel.query()
-			.where('guild_id', guild.id)
-			.delete()
-			.execute();
+    const del = AssignableRoleChannel.query()
+      .where('guild_id', guild.id)
+      .delete()
+      .execute();
 
-		del.then(() => {
-				const promises = [];
-				channels.forEach(channel => {
-					const q = AssignableRoleChannel.query()
-						.insert({guild_id: guild.id, channel_id: channel});
+    del.then(() => {
+        const promises = [];
+        channels.forEach(channel => {
+          const q = AssignableRoleChannel.query()
+            .insert({guild_id: guild.id, channel_id: channel});
 
-					promises.push(q);
-				});
+          promises.push(q);
+        });
 
-				return Promise.all(promises);
-			})
-			.then(() => {
-				assignableRoleChannels[guild] = null; // Reset channel cache
-				getChannels(guild).then(channels => {
-					const channelNames = channels.map(channel => guild.channels.get(channel).mention);
-					bot.createMessage(msg.channel.id, `Channels updated! Channels are now: ${util.prettyList(channelNames)}`);
-				});
-			}, (e) => {
-				console.error(e);
-			});
-	});
+        return Promise.all(promises);
+      })
+      .then(() => {
+        assignableRoleChannels[guild] = null; // Reset channel cache
+        getChannels(guild).then(channels => {
+          const channelNames = channels.map(channel => guild.channels.get(channel).mention);
+          bot.createMessage(msg.channel.id, `Channels updated! Channels are now: ${util.prettyList(channelNames)}`);
+        });
+      }, (e) => {
+        console.error(e);
+      });
+  });
 
-	bot.registerCommand('recruit_role', (msg, args) => {
-		if (! msg.member) return;
-		if (! msg.member.permission.has('administrator')) return;
+  bot.registerCommand('recruit_role', (msg, args) => {
+    if (! msg.member) return;
+    if (! msg.member.permission.has('administrator')) return;
 
-		if (args.length === 0) {
-			// Return current recruit role
-			settings.get(msg.channel.guild.id, 'roles.recruitRole').then(roleId => {
-				if (roleId) {
-					const role = msg.channel.guild.roles.get(roleId);
+    if (args.length === 0) {
+      // Return current recruit role
+      settings.get(msg.channel.guild.id, 'roles.recruitRole').then(roleId => {
+        if (roleId) {
+          const role = msg.channel.guild.roles.get(roleId);
 
-					if (role) {
-						bot.createMessage(msg.channel.id, `Recruit role is currently ${role.mention}`);
-					} else {
-						bot.createMessage(msg.channel.id, `Recruit role is currently <INVALID ROLE ${roleId}>`);
-					}
-				} else {
-					bot.createMessage(msg.channel.id, `Recruit role is currently unset`);
-				}
-			}, e => {
-				console.error(e);
-			});
-		} else if (args.length === 1 && args[0] === 'reset') {
-			// Reset recruit role
-			settings.set(msg.channel.guild.id, 'roles.recruitRole', null).then(() => {
-				bot.createMessage(msg.channel.id, `Recruit role reset`);
-			});
-		} else {
-			// Set recruit role
-			const role = msg.roleMentions[0];
-			if (! role) return;
+          if (role) {
+            bot.createMessage(msg.channel.id, `Recruit role is currently ${role.mention}`);
+          } else {
+            bot.createMessage(msg.channel.id, `Recruit role is currently <INVALID ROLE ${roleId}>`);
+          }
+        } else {
+          bot.createMessage(msg.channel.id, `Recruit role is currently unset`);
+        }
+      }, e => {
+        console.error(e);
+      });
+    } else if (args.length === 1 && args[0] === 'reset') {
+      // Reset recruit role
+      settings.set(msg.channel.guild.id, 'roles.recruitRole', null).then(() => {
+        bot.createMessage(msg.channel.id, `Recruit role reset`);
+      });
+    } else {
+      // Set recruit role
+      const role = msg.roleMentions[0];
+      if (! role) return;
 
-			settings.set(msg.channel.guild.id, 'roles.recruitRole', role, true).then(() => {
-				bot.createMessage(msg.channel.id, `Recruit role updated (now ${msg.channel.guild.roles.get(role).mention})`);
-			}, e => console.error(e));
-		}
-	});
+      settings.set(msg.channel.guild.id, 'roles.recruitRole', role, true).then(() => {
+        bot.createMessage(msg.channel.id, `Recruit role updated (now ${msg.channel.guild.roles.get(role).mention})`);
+      }, e => console.error(e));
+    }
+  });
 
-	// When a user joins the server, give them the Recruit role
-	bot.on('guildMemberAdd', (guild, member) => {
-		settings.get(guild.id, 'roles.recruitRole').then(recruitRoleId => {
-			if (recruitRoleId == null) return;
+  // When a user joins the server, give them the Recruit role
+  bot.on('guildMemberAdd', (guild, member) => {
+    settings.get(guild.id, 'roles.recruitRole').then(recruitRoleId => {
+      if (recruitRoleId == null) return;
 
-			// If they already have the Recruit role, ignore
-			const hasRecruitRole = member.roles.some(roleId => roleId === recruitRoleId);
-			if (hasRecruitRole) return;
+      // If they already have the Recruit role, ignore
+      const hasRecruitRole = member.roles.some(roleId => roleId === recruitRoleId);
+      if (hasRecruitRole) return;
 
-			// If they already have other roles, ignore
-			const hasOtherRoles = member.roles.some(roleId => roleId !== recruitRoleId);
-			if (hasOtherRoles) return;
+      // If they already have other roles, ignore
+      const hasOtherRoles = member.roles.some(roleId => roleId !== recruitRoleId);
+      if (hasOtherRoles) return;
 
-			const newRoles = member.roles.concat(recruitRoleId);
-			bot.editGuildMember(guild.id, member.id, {roles: newRoles});
-		});
-	});
+      const newRoles = member.roles.concat(recruitRoleId);
+      bot.editGuildMember(guild.id, member.id, {roles: newRoles});
+    });
+  });
 
-	// When a user gets any role other than Recruit, remove Recruit
-	bot.on('guildMemberUpdate', (guild, member) => {
-		settings.get(guild.id, 'roles.recruitRole').then(recruitRoleId => {
-			if (recruitRoleId == null) return;
+  // When a user gets any role other than Recruit, remove Recruit
+  bot.on('guildMemberUpdate', (guild, member) => {
+    settings.get(guild.id, 'roles.recruitRole').then(recruitRoleId => {
+      if (recruitRoleId == null) return;
 
-			const hasRecruitRole = member.roles.some(roleId => roleId === recruitRoleId);
-			if (! hasRecruitRole) return;
+      const hasRecruitRole = member.roles.some(roleId => roleId === recruitRoleId);
+      if (! hasRecruitRole) return;
 
-			const hasOtherRoles = member.roles.some(roleId => roleId !== recruitRoleId);
-			if (! hasOtherRoles) return;
+      const hasOtherRoles = member.roles.some(roleId => roleId !== recruitRoleId);
+      if (! hasOtherRoles) return;
 
-			const newRoles = member.roles.filter(roleId => roleId !== recruitRoleId);
-			bot.editGuildMember(guild.id, member.id, {roles: newRoles});
-		});
-	});
+      const newRoles = member.roles.filter(roleId => roleId !== recruitRoleId);
+      bot.editGuildMember(guild.id, member.id, {roles: newRoles});
+    });
+  });
 };

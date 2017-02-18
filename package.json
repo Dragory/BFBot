@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "eris": "github:abalabahaha/eris#dev",
+    "humanize-duration": "^3.10.0",
     "knex": "^0.11.10",
     "mariasql": "^0.2.6",
     "moment": "^2.14.1",
