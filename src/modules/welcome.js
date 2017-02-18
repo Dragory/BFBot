@@ -8,6 +8,7 @@ module.exports = function(bot) {
   const welcomePromises = {};
 
   bot.on('messageCreate', (msg) => {
+    if (! msg.channel.guild) return;
     if (! msg.cleanContent || msg.cleanContent.trim() === '') return;
 
     const guildId = msg.channel.guild.id;
