@@ -17,7 +17,7 @@ const findRoleByName = (guild, name) => {
 const findRolesByName = (guild, list) => {
   return list
     .map(roleName => findRoleByName(guild, roleName))
-    .filter(role => role !== null);
+    .filter(role => role != null);
 };
 
 let assignableRoleChannels = {}; // Cached
