@@ -41,7 +41,7 @@ rolesModule(bot);
 miscModule(bot);
 greetingModule(bot);
 welcomeModule(bot);
-spamModule(bot);
+// spamModule(bot);
 
 // Start the bot
 bot.connect();
