@@ -250,7 +250,7 @@ module.exports = function(bot) {
         return Promise.all(promises);
       })
       .then(() => {
-        assignableRoleChannels[guild] = null; // Reset channel cache
+        assignableRoleChannels[guild.id] = null; // Reset channel cache
         getChannels(guild).then(channels => {
           const channelNames = channels.map(channel => guild.channels.get(channel).mention);
           bot.createMessage(msg.channel.id, `Channels updated! Channels are now: ${util.prettyList(channelNames)}`);
